@@ -1,13 +1,21 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Poppins, Inter } from "next/font/google"
 import "./globals.css"
 import { Providers } from "./providers"
 import { Toaster } from "@/components/ui/toaster"
 
-const inter = Inter({ subsets: ["latin"] })
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-poppins",
+})
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+})
 
 export const metadata: Metadata = {
-  title: "PlacementPro - Campus Career Suite",
+  title: "EduNexus - Smart Placement Automation Platform",
   description: "Integrated campus placement management system",
 }
 
@@ -17,8 +25,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className={`${poppins.variable} ${inter.variable}`}>
+      <body className="font-sans antialiased">
         <Providers>{children}</Providers>
         <Toaster />
       </body>
