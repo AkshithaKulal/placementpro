@@ -10,34 +10,35 @@ function classifyIntent(text: string): Category {
   const normalized = text.toLowerCase().trim()
   const words = normalized.split(/\s+/)
 
+  // General/preparation queries - check FIRST (avoid "interview" matching status)
+  const generalKeywords = [
+    "how to prepare", "prepare for interview", "prepare for interviews",
+    "interview tip", "interview tips", "resume tip", "resume tips",
+    "placement tip", "placement tips", "aptitude preparation",
+    "technical preparation", "interview strategy", "general", "advice", "guidance",
+  ]
   const eligibilityKeywords = [
     "eligible", "eligibility", "can i apply", "why can't i see", "why cant i see",
-    "qualify", "qualification", "cgpa", "backlog", "branch", "drive", "see drive",
-    "which drive", "for tcs", "for google", "for microsoft", "for company",
-    "eligible for interview", "current drives",
+    "qualify", "qualification", "am i eligible", "current drives", "which drive",
+    "see drive", "for tcs", "for google", "for microsoft", "for company",
   ]
   const statusKeywords = [
     "application status", "my status", "shortlist", "shortlisted", "cleared",
-    "aptitude", "interview", "selected", "rejected", "pending", "have i been",
-    "did i clear", "application result",
+    "aptitude", "selected", "rejected", "pending", "have i been",
+    "did i clear", "application result", "my application",
   ]
   const skillGapKeywords = [
     "improve", "improvement", "missing skill", "what should i", "how can i get placed",
-    "get placed", "skills i need", "skill gap", "weak", "lack", "prepare skill",
-  ]
-  const generalKeywords = [
-    "how to prepare", "interview tip", "resume tip", "placement tip", "prepare for interview",
-    "aptitude preparation", "technical preparation", "interview strategy", "resume",
-    "general", "advice", "guidance",
+    "get placed", "skills i need", "skill gap", "weak", "lack",
   ]
 
   const check = (keywords: string[]) =>
     keywords.some((k) => normalized.includes(k) || words.some((w) => w.includes(k) || k.includes(w)))
 
+  if (check(generalKeywords)) return "general"
   if (check(eligibilityKeywords)) return "eligibility"
   if (check(statusKeywords)) return "status"
   if (check(skillGapKeywords)) return "skill_gap"
-  if (check(generalKeywords)) return "general"
 
   return "general"
 }
@@ -62,7 +63,9 @@ async function handleEligibility(
     return `You have CGPA ${studentProfile.CGPA} and ${studentProfile.backlogs} backlogs (Branch: ${studentProfile.branch}). There are no active placement drives at the moment. Check back later for new drives.`
   }
 
-  const results: string[] = []
+  const eligible: string[] = []
+  const notEligible: string[] = []
+
   for (const drive of drives) {
     const cgpaOk = studentProfile.CGPA >= drive.minCGPA
     const backlogsOk = studentProfile.backlogs <= drive.maxBacklogs
@@ -70,25 +73,36 @@ async function handleEligibility(
       drive.eligibleBranches.length === 0 ||
       drive.eligibleBranches.map((b) => b.toLowerCase()).includes(studentProfile.branch.toLowerCase())
 
+    const branchesText = drive.eligibleBranches.length > 0 ? drive.eligibleBranches.join(", ") : "All"
+
     if (cgpaOk && backlogsOk && branchOk) {
-      results.push(
-        `**${drive.title} (${drive.company})**: You are eligible. Your CGPA (${studentProfile.CGPA}) meets the required minimum (${drive.minCGPA}), your backlogs (${studentProfile.backlogs}) are within the limit (${drive.maxBacklogs}), and your branch (${studentProfile.branch}) is in the eligible list.`
+      eligible.push(
+        `• ${drive.title} (${drive.company})\n  Your CGPA ${studentProfile.CGPA} ✓ | Backlogs ${studentProfile.backlogs} ✓ | Branch ${studentProfile.branch} ✓`
       )
     } else {
       const reasons: string[] = []
-      if (!cgpaOk)
-        reasons.push(`your CGPA (${studentProfile.CGPA}) is below the required minimum (${drive.minCGPA})`)
-      if (!backlogsOk)
-        reasons.push(`your backlogs (${studentProfile.backlogs}) exceed the maximum allowed (${drive.maxBacklogs})`)
-      if (!branchOk)
-        reasons.push(`your branch (${studentProfile.branch}) is not in the eligible branches (${drive.eligibleBranches.join(", ") || "all"})`)
-      results.push(
-        `**${drive.title} (${drive.company})**: You are not eligible. Reason: ${reasons.join("; ")}.`
+      if (!cgpaOk) reasons.push(`CGPA ${studentProfile.CGPA} < ${drive.minCGPA}`)
+      if (!backlogsOk) reasons.push(`Backlogs ${studentProfile.backlogs} > ${drive.maxBacklogs}`)
+      if (!branchOk) reasons.push(`Branch ${studentProfile.branch} not in (${branchesText})`)
+      notEligible.push(
+        `• ${drive.title} (${drive.company})\n  Reason: ${reasons.join("; ")}`
       )
     }
   }
 
-  return results.length > 0 ? results.join("\n\n") : "No active drives found."
+  const lines: string[] = []
+  lines.push(`Your profile: CGPA ${studentProfile.CGPA} | Backlogs ${studentProfile.backlogs} | Branch ${studentProfile.branch}\n`)
+
+  if (eligible.length > 0) {
+    lines.push("ELIGIBLE DRIVES:")
+    lines.push(eligible.join("\n\n"))
+  }
+  if (notEligible.length > 0) {
+    lines.push("\nNOT ELIGIBLE:")
+    lines.push(notEligible.join("\n\n"))
+  }
+
+  return lines.join("\n")
 }
 
 async function handleApplicationStatus(
@@ -115,14 +129,13 @@ async function handleApplicationStatus(
   })
 
   const lines: string[] = []
+  lines.push("YOUR APPLICATIONS:\n")
   for (const app of applications) {
     const slot = assignments.find((a) => a.slot.driveId === app.driveId)
     const interviewInfo = slot
-      ? ` Interview scheduled: ${slot.slot.startTime.toLocaleDateString()} ${slot.slot.startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${slot.slot.endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.`
+      ? `\n  Interview: ${slot.slot.startTime.toLocaleDateString()} ${slot.slot.startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${slot.slot.endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
       : ""
-    lines.push(
-      `**${app.drive.title} (${app.drive.company})**: Status — ${app.status}.${interviewInfo}`
-    )
+    lines.push(`• ${app.drive.title} (${app.drive.company})\n  Status: ${app.status}${interviewInfo}`)
   }
   return lines.join("\n\n")
 }
@@ -162,31 +175,32 @@ async function handleSkillGap(
     return "Your skills overlap well with what placed students have. Keep strengthening them and focus on aptitude, communication, and interview practice to improve your placement chances."
   }
 
-  return `Based on skills of placed students, here are the top 3 high-value skills you could add or strengthen:\n\n1. **${missing[0]}**\n2. **${missing[1] || ""}**\n3. **${missing[2] || ""}**\n\nFocus on these along with your current skills, aptitude, and interview preparation to improve your placement chances.`
+  const skillList = missing.filter(Boolean).map((s, i) => `${i + 1}. ${s}`).join("\n")
+  return `SKILL GAP ANALYSIS (based on placed students)\n\nTop skills to add or strengthen:\n\n${skillList}\n\nFocus on these along with aptitude and interview preparation to improve your placement chances.`
 }
 
 function handleGeneral(_query: string): string {
-  return `**Placement preparation – structured guide**
+  return `PLACEMENT PREPARATION GUIDE
 
-**1. Technical preparation**
-- Revise core CS fundamentals (DSA, DBMS, OS, networks).
-- Practice coding regularly on platforms like LeetCode or CodeChef.
-- Be ready to explain projects and technologies on your resume.
+1. TECHNICAL PREPARATION
+   • Revise core CS fundamentals (DSA, DBMS, OS, networks)
+   • Practice coding on LeetCode or CodeChef
+   • Be ready to explain projects and technologies on your resume
 
-**2. Aptitude preparation**
-- Practice quantitative aptitude, logical reasoning, and verbal ability.
-- Use standard placement preparation resources and mock tests.
-- Manage time in timed tests.
+2. APTITUDE PREPARATION
+   • Practice quantitative aptitude, logical reasoning, verbal ability
+   • Use standard placement preparation resources and mock tests
+   • Manage time well in timed tests
 
-**3. Resume improvement**
-- Keep resume to 1 page, clear sections (Education, Skills, Projects, Experience).
-- Use action verbs and quantify achievements where possible.
-- Tailor it to the role and company when applying.
+3. RESUME IMPROVEMENT
+   • Keep resume to 1 page with clear sections (Education, Skills, Projects)
+   • Use action verbs and quantify achievements
+   • Tailor it to the role and company when applying
 
-**4. Interview strategy**
-- Research the company and role before the interview.
-- Prepare short introductions and common HR and technical questions.
-- Practice mock interviews and clear communication.`
+4. INTERVIEW STRATEGY
+   • Research the company and role before the interview
+   • Prepare short introductions and common HR/technical questions
+   • Practice mock interviews and clear communication`
 }
 
 export async function POST(req: Request) {
