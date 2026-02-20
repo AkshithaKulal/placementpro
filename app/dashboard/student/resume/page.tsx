@@ -58,7 +58,6 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   skill: {
-    display: "inline",
     marginRight: 5,
   },
 })
@@ -663,21 +662,9 @@ export default function ResumePage() {
                   fileName={`${resumeData.name.replace(/\s+/g, '_')}_Resume.pdf`}
                   className="inline-block"
                 >
-                  {({ blob, url, loading, error }) =>
-                    loading ? (
-                      <Button disabled size="lg" className="min-w-[200px]">
-                        Generating PDF...
-                      </Button>
-                    ) : error ? (
-                      <Button variant="destructive" size="lg" className="min-w-[200px]">
-                        Error generating PDF. Please try again.
-                      </Button>
-                    ) : (
-                      <Button size="lg" className="min-w-[200px]">
-                        Download Resume PDF
-                      </Button>
-                    )
-                  }
+                  <Button size="lg" className="min-w-[200px]">
+                    Download Resume PDF
+                  </Button>
                 </PDFDownloadLink>
               </div>
               <div className="border rounded p-6 space-y-4 bg-gray-50">

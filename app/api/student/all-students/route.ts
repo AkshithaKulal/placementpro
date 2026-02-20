@@ -16,13 +16,6 @@ export async function GET() {
       where: {
         userId: { not: session.user.id },
       },
-      include: {
-        user: {
-          select: {
-            name: true,
-          },
-        },
-      },
       select: {
         id: true,
         enrollmentNo: true,

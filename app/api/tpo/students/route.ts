@@ -13,14 +13,6 @@ export async function GET() {
     }
 
     const students = await prisma.studentProfile.findMany({
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-      },
       select: {
         id: true,
         enrollmentNo: true,

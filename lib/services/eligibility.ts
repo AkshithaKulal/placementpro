@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 
 const SKILL_MATCH_THRESHOLD = 0.5 // 50%
@@ -28,7 +29,7 @@ export async function getEligibleStudents(driveId: string): Promise<EligibleStud
   })
   if (!drive) return []
 
-  const where: Parameters<typeof prisma.studentProfile.findMany>[0]["where"] = {
+  const where: Prisma.StudentProfileWhereInput = {
     CGPA: { gte: drive.minCGPA },
     backlogs: { lte: drive.maxBacklogs },
   }
