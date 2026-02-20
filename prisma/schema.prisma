@@ -1,0 +1,212 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  TPO
+  STUDENT
+  ALUMNI
+}
+
+enum DriveStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+enum ApplicationStatus {
+  PENDING       // Applied
+  APTITUDE
+  CLEARED
+  INTERVIEW_SCHEDULED
+  SHORTLISTED
+  SELECTED
+  REJECTED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  studentProfile StudentProfile?
+  alumniProfile  AlumniProfile?
+  notifications  Notification[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model StudentProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollmentNo  String   @unique
+  branch        String
+  year          Int
+  CGPA          Float
+  backlogs      Int      @default(0)
+  skills        String[] @default([])
+  phone         String?
+  address       String?
+  linkedin      String?
+  github        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  applications     Application[]
+  interviewAssignments InterviewAssignment[]
+
+  @@index([CGPA])
+  @@index([branch])
+  @@index([enrollmentNo])
+}
+
+model AlumniProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company   String?
+  position  String?
+  year      Int?
+  phone     String?
+  linkedin  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobReferrals    JobReferral[]
+  mentorshipSlots MentorshipSlot[]
+}
+
+model PlacementDrive {
+  id              String        @id @default(cuid())
+  title           String
+  description     String        @db.Text
+  company         String
+  status          DriveStatus   @default(DRAFT)
+  minCGPA         Float
+  maxBacklogs     Int           @default(0)
+  eligibleBranches String[]     @default([])
+  requiredSkills  String[]      @default([])
+  location        String?
+  package         String?
+  registrationDeadline DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  applications    Application[]
+  interviewSlots  InterviewSlot[]
+
+  @@index([status])
+  @@index([minCGPA])
+}
+
+model Application {
+  id            String            @id @default(cuid())
+  studentId     String
+  student       StudentProfile    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  driveId       String
+  drive         PlacementDrive    @relation(fields: [driveId], references: [id], onDelete: Cascade)
+  status        ApplicationStatus @default(PENDING)
+  appliedAt     DateTime          @default(now())
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([studentId, driveId])
+  @@index([status])
+  @@index([driveId])
+  @@index([studentId])
+}
+
+model InterviewSlot {
+  id           String   @id @default(cuid())
+  driveId      String
+  drive        PlacementDrive @relation(fields: [driveId], references: [id], onDelete: Cascade)
+  startTime    DateTime
+  endTime      DateTime
+  maxStudents  Int      @default(1)
+  currentCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignments  InterviewAssignment[]
+
+  @@index([driveId])
+  @@index([startTime])
+}
+
+model InterviewAssignment {
+  id           String   @id @default(cuid())
+  slotId       String
+  slot         InterviewSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  panelName    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([slotId, studentId])
+  @@index([slotId])
+  @@index([studentId])
+}
+
+model JobReferral {
+  id          String   @id @default(cuid())
+  alumniId    String
+  alumni      AlumniProfile @relation(fields: [alumniId], references: [id], onDelete: Cascade)
+  company     String
+  position    String
+  description String   @db.Text
+  requirements String[] @default([])
+  link        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([alumniId])
+  @@index([isActive])
+}
+
+model MentorshipSlot {
+  id          String   @id @default(cuid())
+  alumniId    String
+  alumni      AlumniProfile @relation(fields: [alumniId], references: [id], onDelete: Cascade)
+  date        DateTime
+  startTime   String
+  endTime     String
+  topic       String?
+  isBooked    Boolean  @default(false)
+  bookedBy    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([alumniId])
+  @@index([date])
+  @@index([isBooked])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String   @db.Text
+  type      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}
