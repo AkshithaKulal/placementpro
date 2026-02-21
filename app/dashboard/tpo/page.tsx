@@ -239,7 +239,7 @@ export default function TPODashboard() {
         </motion.div>
       </div>
 
-      {barData.some((d) => d.total > 0) && (
+      {barData.some((d) => d.value > 0) && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
