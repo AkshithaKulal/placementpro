@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { requireTPO } from "@/lib/middleware/tpoAuth"
+import { requireTPO, tpoAccessDeniedResponse } from "@/lib/middleware/tpoAuth"
 import { assignStudentToSlot } from "@/lib/services/interviewSchedule"
 
 export async function POST(
@@ -8,9 +8,7 @@ export async function POST(
 ) {
   try {
     const session = await requireTPO()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    if (!session) return tpoAccessDeniedResponse()
 
     const body = await req.json()
     const { slotId, studentId, panelName } = body

@@ -7,7 +7,7 @@ const signupSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   name: z.string().min(1),
-  role: z.enum(["TPO", "STUDENT", "ALUMNI"]),
+  role: z.enum(["STUDENT", "ALUMNI"]),
 })
 
 export async function POST(req: Request) {

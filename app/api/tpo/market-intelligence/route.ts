@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { requireTPO, tpoAccessDeniedResponse } from "@/lib/middleware/tpoAuth"
 import { prisma } from "@/lib/prisma"
-import { UserRole, ApplicationStatus } from "@prisma/client"
+import { ApplicationStatus } from "@prisma/client"
 
 /**
  * Extract role from drive title (e.g., "Software Engineer" from "Software Engineer at Google")
@@ -25,11 +24,8 @@ function extractRoleFromTitle(title: string): string {
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session || session.user.role !== UserRole.TPO) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const session = await requireTPO()
+    if (!session) return tpoAccessDeniedResponse()
 
     // Get all SELECTED applications (placed students)
     const selectedApplications = await prisma.application.findMany({

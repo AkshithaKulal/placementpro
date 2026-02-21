@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { requireTPO } from "@/lib/middleware/tpoAuth"
+import { requireTPO, tpoAccessDeniedResponse } from "@/lib/middleware/tpoAuth"
 import { unassignStudentFromSlot } from "@/lib/services/interviewSchedule"
 
 export async function DELETE(
@@ -8,9 +8,7 @@ export async function DELETE(
 ) {
   try {
     const session = await requireTPO()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    if (!session) return tpoAccessDeniedResponse()
 
     await unassignStudentFromSlot(params.assignmentId)
     return NextResponse.json({ success: true })

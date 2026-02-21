@@ -17,7 +17,7 @@ export default function SignUpPage() {
     email: "",
     password: "",
     name: "",
-    role: "STUDENT" as "TPO" | "STUDENT" | "ALUMNI",
+    role: "STUDENT" as "STUDENT" | "ALUMNI",
   })
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -104,7 +104,7 @@ export default function SignUpPage() {
                 <Label htmlFor="role">Role</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value: "TPO" | "STUDENT" | "ALUMNI") =>
+                  onValueChange={(value: "STUDENT" | "ALUMNI") =>
                     setFormData({ ...formData, role: value })
                   }
                 >
@@ -114,7 +114,6 @@ export default function SignUpPage() {
                   <SelectContent>
                     <SelectItem value="STUDENT">Student</SelectItem>
                     <SelectItem value="ALUMNI">Alumni</SelectItem>
-                    <SelectItem value="TPO">TPO</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { requireTPO } from "@/lib/middleware/tpoAuth"
+import { requireTPO, tpoAccessDeniedResponse } from "@/lib/middleware/tpoAuth"
 import { getEligibleCount } from "@/lib/services/eligibility"
 import { prisma } from "@/lib/prisma"
 
@@ -9,9 +9,7 @@ export async function GET(
 ) {
   try {
     const session = await requireTPO()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    if (!session) return tpoAccessDeniedResponse()
 
     const drive = await prisma.placementDrive.findUnique({
       where: { id: params.id },

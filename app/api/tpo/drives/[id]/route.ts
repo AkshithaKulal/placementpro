@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { requireTPO, tpoAccessDeniedResponse } from "@/lib/middleware/tpoAuth"
 import { prisma } from "@/lib/prisma"
-import { UserRole, DriveStatus } from "@prisma/client"
+import { DriveStatus } from "@prisma/client"
 import { notifyEligibleStudentsForDrive } from "@/lib/notifications"
 
 export async function GET(
@@ -10,11 +9,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session || session.user.role !== UserRole.TPO) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const session = await requireTPO()
+    if (!session) return tpoAccessDeniedResponse()
 
     const drive = await prisma.placementDrive.findUnique({
       where: { id: params.id },
@@ -38,11 +34,8 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session || session.user.role !== UserRole.TPO) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const session = await requireTPO()
+    if (!session) return tpoAccessDeniedResponse()
 
     const body = await req.json()
     const {
